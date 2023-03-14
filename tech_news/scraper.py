@@ -1,9 +1,7 @@
 import requests
 import time
-
-# import re
-
 from parsel import Selector
+from tech_news.database import create_news
 
 
 # Requisito 1
@@ -49,12 +47,12 @@ def scrape_news(html_content):
     reading_time = int(
         selector.css("li.meta-reading-time::text").get().split(" ")[0]
     )
-    summary = "".join(selector.css(
-        "div.entry-content > p:nth-of-type(1) *::text"
-    ).getall())
+    summary = "".join(
+        selector.css("div.entry-content > p:nth-of-type(1) *::text").getall()
+    )
     category = selector.css("span.label::text").get()
 
-    data = {
+    scrapy_news = {
         "url": url,
         "title": title.strip(),
         "timestamp": timestamp,
@@ -64,9 +62,22 @@ def scrape_news(html_content):
         "category": category,
     }
 
-    return data
+    return scrapy_news
 
 
 # Requisito 5
 def get_tech_news(amount):
-    """Seu código deve vir aqui"""
+    url = "https://blog.betrybe.com/"
+    news = []
+
+    while len(news) < amount:
+        fetch_news = fetch(url)
+        news += scrape_updates(fetch_news)
+        url = scrape_next_page_link(fetch_news)
+
+    scrape_each_news = [
+        scrape_news(fetch(url)) for url in news[:amount]
+    ]
+
+    create_news(scrape_each_news)
+    return scrape_each_news
